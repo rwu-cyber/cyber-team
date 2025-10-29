@@ -7,7 +7,6 @@
 Import-Module ActiveDirectory
 
 # Define the list of usernames
-$usernames = @("vrat", "Jbar", "KP", "Jared", "Arob") # Replace with actual usernames
 
 $userInfo = @{
     "vrat" = "password123"
@@ -27,7 +26,7 @@ $defaultOU = (Get-ADDomain).UsersContainer  # usually "CN=Users,DC=example,DC=co
 # Optionally get the domain's NetBIOS name (for groups like "Domain Admins")
 $netbios = (Get-ADDomain).NetBIOSName
 
-foreach ($username in $usernames) {
+foreach ($username in $userInfo.Keys) {
     # Build a standard display name
     $displayName = "$($username.Substring(0,1).ToUpper())$($username.Substring(1))"
 
