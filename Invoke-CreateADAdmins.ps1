@@ -7,7 +7,15 @@
 Import-Module ActiveDirectory
 
 # Define the list of usernames
-$usernames = @("user1", "user2", "user3") # Replace with actual usernames
+$usernames = @("vrat", "Jbar", "KP", "Jared", "Arob") # Replace with actual usernames
+
+$userInfo = @{
+    "vrat" = "password123"
+    "Jbar" = "securePass!"
+    "KP"   = "dgfudifkgrjfvi"
+    "Jared"= "dgujbriekrbjked"
+    "Arob" = "dfiehfigbdjvifdguf8"
+}
 
 
 # Automatically detect the current domain
@@ -25,15 +33,15 @@ foreach ($username in $usernames) {
 
     # Create the user
     New-ADUser `
-        -Name $username `
+        -Name $userinfo[$username] `
         -SamAccountName $username `
         -UserPrincipalName "$username@$domain" `
         -GivenName $username `
         -Surname "User" `
         -DisplayName $displayName `
         -Path $defaultOU `
-        -AccountPassword (ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force) `
-        -ChangePasswordAtLogon $true `
+        -AccountPassword (ConvertTo-SecureString $userInfo[$username] -AsPlainText -Force) `
+        -ChangePasswordAtLogon $false `
         -Enabled $true
 
     # Add the user to the Domain Admins group dynamically
