@@ -2,7 +2,7 @@
 Import-Module ActiveDirectory
 
 # List of users to exclude from password reset
-$excludeUsers = @("black_team", "vrat", "Jbar")  # add any usernames you want to skip
+$excludeUsers = @("black_team", "vrat", "Jbar", "KP", "Jared", "Arob")  # add any usernames you want to skip
 
 # Get all enabled AD users
 $users = Get-ADUser -Filter {Enabled -eq $true} -Properties SamAccountName
@@ -24,6 +24,8 @@ foreach ($user in $users) {
     # Set the new password and force password change at next logon
     Set-ADAccountPassword -Identity $user.SamAccountName -NewPassword $securePassword -Reset
     Set-ADUser -Identity $user.SamAccountName -ChangePasswordAtLogon $true
+    #disable the account
+    Disable-ADAccount -Identity $user.SamAccountName
 
     Write-Host "Password reset for $($user.SamAccountName). User must change password at next logon."
 }

@@ -9,11 +9,11 @@ Import-Module ActiveDirectory
 # Define the list of usernames
 
 $userInfo = @{
-    "vrat" = "password123"
-    "Jbar" = "securePass!"
-    "KP"   = "dgfudifkgrjfvi"
-    "Jared"= "dgujbriekrbjked"
-    "Arob" = "dfiehfigbdjvifdguf8"
+    "vrat" = "TToD8nRbj1QUXorPl67fMXQ5"
+    "Jbar" = "pFSn759l5fr6yZwKEdFxOpysxtE!"
+    "KP"   = "iS7wjL8hwwmkQKY7q2OQxj0B98ge3G"
+    "Jared"= "WYLeOBKL6k1nU8b4m67D0ry5Stt1Sajx7"
+    "Arob" = "cPe9dCFRcha79IQ0QgWVmA0uyUMMu899j6oXhWx"
 }
 
 
@@ -26,20 +26,21 @@ $defaultOU = (Get-ADDomain).UsersContainer  # usually "CN=Users,DC=example,DC=co
 # Optionally get the domain's NetBIOS name (for groups like "Domain Admins")
 $netbios = (Get-ADDomain).NetBIOSName
 
-foreach ($username in $userInfo.Keys) {
+foreach ($user in $userInfo.GetEnumerator()) {
     # Build a standard display name
-    $displayName = "$($username.Substring(0,1).ToUpper())$($username.Substring(1))"
+    $username = $user.Key
+    $password = $user.Value
 
     # Create the user
     New-ADUser `
-        -Name $userinfo[$username] `
+        -Name $username `
         -SamAccountName $username `
         -UserPrincipalName "$username@$domain" `
         -GivenName $username `
         -Surname "User" `
-        -DisplayName $displayName `
+        -DisplayName $username `
         -Path $defaultOU `
-        -AccountPassword (ConvertTo-SecureString $userInfo[$username] -AsPlainText -Force) `
+        -AccountPassword (ConvertTo-SecureString $password -AsPlainText -Force) `
         -ChangePasswordAtLogon $false `
         -Enabled $true
 
