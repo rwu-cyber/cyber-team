@@ -140,20 +140,7 @@ Set-Content -Path $Profile -Value "Set-PSReadlineOption -HistorySaveStyle SaveNo
 
 # Certificates
 
-# Web Server Configuration
 
-```bash
-# Find running service 
-service apache2 status
-# Install openssl 
-sudo apt-get install openssl
-# Set up cert 
-mkdir ~/certs
-cd ~/certs
-openssl genrsa -out <name>.key 2048
-openssl req -new -sha256 -key <name>.key -out <name>.csr
-
-```
 
 # CA Configuration
 
