@@ -1,3 +1,26 @@
-## First 48
-![Cool Stuff](https://media.discordapp.net/attachments/906375130786177067/1438332894539022446/image.jpg?ex=69167f64&is=69152de4&hm=81bc69aa6c498b6f2141b4fd4d23fec5117f32ee1c4f54a65fbd6fbdf53be112&=&format=webp&width=1118&height=688)
+# First 48
 
+## 1. Clone the repository
+```bash
+git clone https://github.com/rwu-cyber/cyber-team.git
+cd cyber-team
+git switch dev-neccdc-2026
+```
+## 2. Enumeration
+#### Run Enumeration Script
+May need to run chmod +x _script.sh_ to make executable
+```bash
+cd linux/scripts
+sudo ./enumeration.sh
+```
+#### Create Backup Admins
+```bash
+sudo ./createLocalAdmin.sh
+```
+#### Run AV Scan
+```bash
+cd ../tools
+sudo ./scan.sh
+# OR RUN IN BACKGROUND
+sudo nohup ./scan.sh & ## output goes to nohup.out and logs/
+```
