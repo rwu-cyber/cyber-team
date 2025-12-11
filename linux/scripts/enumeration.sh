@@ -345,5 +345,3 @@ elif command -v netstat &>/dev/null; then
 else
     echo "  Neither ss nor netstat found."
 fi
-
-divider "$GREEN" "Audit Complete"
