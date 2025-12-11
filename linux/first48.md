@@ -7,11 +7,20 @@
   <ul>
     <li>YAML:</li>
     https://gitlab.com/nuccdc/tools/-/blob/master/scripts/unix/kubebench/job.yaml?ref_type=heads
-    <li> I have started working on a scrip to run the kubebench</li>
+    <li> I have started working on a script to run the kubebench</li>
   </ul>
 </details>
 
+- [ ] Incorporate some sort of file integrity checker: debsums, tripwire
+- [ ] Rootkit checker: chkroot, rkhunter
+- [ ] Create a backup directory for important stuff
+- [ ] File monitoring with wazuh or other system? Send alerts to soc if important files are changed.
 
+Should we script out some sort of telnet / netcat removal?
+```bash
+rm $(which telnet) 2>/dev/null
+rm $(which nc) 2>/dev/null
+```
 
 ## 1. Clone the repository
 ```bash
@@ -37,3 +46,4 @@ sudo ./scan.sh
 # OR RUN IN BACKGROUND
 sudo nohup ./scan.sh & ## output goes to nohup.out and logs/
 ```
+
