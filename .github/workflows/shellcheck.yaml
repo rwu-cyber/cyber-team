@@ -1,0 +1,23 @@
+name: Lint Shell Scripts
+
+on:
+  push:
+    branches:
+      - main
+      - dev-neccdc-2027
+      - dev*
+      - feat*
+
+jobs:
+  shellcheck:
+    name: Lint Bash Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: 'linux/scripts'
+          severity: error
+          format: gcc
+
