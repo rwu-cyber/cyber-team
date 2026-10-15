@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
+##
+# THIS SCRIPT IS DESTRUCTIVE!!! IT WILL NUKE ANY KEYS IN `authorized_keys`!!!
+# 
+# sleep deprived key rotation script. this will be improved on.     
+# 	- generates a new key (with type based on `KEY_TYPE` env var)
+# 	- uses `ssh-copy-id` to copy the key to the remote host
+# 	- tests and NUKES `authorized_keys`         
+# 	- post-verification by looking line-by-line for the expected key in `authorized_keys`
+#
+#want to rotate multiple hosts? throw it in a for ... do; loop!
+#
+# i probably should've vibecoded this
+##
 set -euo pipefail
-KEY_TYPE="ed25519"
+: "${KEY_TYPE:=ed25519}"
 main(){
 	IFS='@' read -r remote_user host <<< $1
 	if ping -c 1 $host; then
