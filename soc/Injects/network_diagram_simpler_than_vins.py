@@ -1,18 +1,4 @@
 #!/usr/bin/env python3
-"""Create a simple network diagram and CSV inventory from IP addresses.
-
-Install:  pip install matplotlib
-Examples:
-  python network_diagram_simple.py
-  python network_diagram_simple.py --ips 10.0.0.5=web:linux 10.0.0.10=dc:windows
-  python network_diagram_simple.py --file hosts.csv -o my_network.png
-
-All output files are saved in the current user's Downloads folder.
-
-CSV columns: ip,hostname,type (only ip is required).
-IP entry: 10.0.0.5[=hostname][:linux|windows|soc|host]
-"""
-
 import argparse
 import csv
 import ipaddress
