@@ -99,25 +99,34 @@ fi
 ####################### SSH Configuration & Keys #######################
 divider "$CYAN" "SSH Configuration & Authorized Keys"
 
-echo -e "\n${BOLD}Critical SSHD settings:${END_COLOR}"
+echo -e "\n${BOLD}Critical SSHD settings (effective defaults):${END_COLOR}"
 SSH_CONFIG="/etc/ssh/sshd_config"
-if [[ -f "$SSH_CONFIG" ]]; then
-    while IFS= read -r line; do
-        [[ "$line" =~ ^[[:space:]]*# ]] && continue
-        [[ -z "$line" ]] && continue
-        
-        if echo "$line" | grep -qiE "(PermitRootLogin|PasswordAuthentication|PubkeyAuthentication|PermitEmptyPasswords|X11Forwarding)"; then
-            if echo "$line" | grep -qiE "(PermitRootLogin yes|PermitEmptyPasswords yes)"; then
-                highlight "$RED" "$line"
-            elif echo "$line" | grep -qiE "(PermitRootLogin no|PasswordAuthentication no|PubkeyAuthentication yes)"; then
-                echo -e "  ${GREEN}$line${END_COLOR}"
-            else
-                echo -e "  ${YELLOW}$line${END_COLOR}"
-            fi
-        fi
-    done < "$SSH_CONFIG"
+#find sshd even when sbin is not in the current PATH
+sshd_bin=$(command -v sshd)
+if [[ -z "$sshd_bin" && -x /usr/sbin/sshd ]]; then
+    sshd_bin=/usr/sbin/sshd
+fi
+#use sshd to resolve includes and defaults instead of parsing config lines
+if [[ -z "$sshd_bin" ]]; then
+    highlight "$YELLOW" "Cannot check effective SSH settings: sshd not found."
+elif ssh_settings=$("$sshd_bin" -T -f "$SSH_CONFIG"); then
+    while read -r setting value; do
+        case "$setting $value" in
+            "permitrootlogin yes"|"permitemptypasswords yes")
+                highlight "$RED" "$setting $value"
+                ;;
+            "permitrootlogin no"|"passwordauthentication no"|"pubkeyauthentication yes"|"permitemptypasswords no"|"x11forwarding no")
+                echo -e "  ${GREEN}$setting $value${END_COLOR}"
+                ;;
+            permitrootlogin\ *|passwordauthentication\ *|pubkeyauthentication\ *|permitemptypasswords\ *|x11forwarding\ *)
+                echo -e "  ${YELLOW}$setting $value${END_COLOR}"
+                ;;
+        esac
+    done <<< "$ssh_settings"
+    #Match rules need a specific connection to determine the effective settings
+    echo "  Match overrides require a separate sshd -T -C user=USER,host=HOST,addr=IP check."
 else
-    echo "  ${RED}SSHD config not found${END_COLOR}"
+    highlight "$YELLOW" "Cannot evaluate SSH configuration. Check permissions and the sshd error above."
 fi
 
 echo -e "\n${BOLD}Active SSH Sessions (PID):${END_COLOR}"
@@ -167,7 +176,8 @@ else
     echo -e "  ${GREEN}No SUID files found (Rare)${END_COLOR}"
 fi
 
-echo -e "\n${BOLD}World Writable Directories (Sticky bit set - Top 10):${END_COLOR}"
+#correct the heading because the search excludes directories with the sticky bit
+echo -e "\n${BOLD}World Writable Directories (No sticky bit - First 10):${END_COLOR}"
 find / -type d -perm -0002 -a ! -perm -1000 -ls 2>/dev/null | head -n 10 | awk '{print "  " $NF}'
 
 ####################### Scheduled Tasks #######################
@@ -198,17 +208,28 @@ case "$DISTRO" in
     ubuntu|debian|kali|linuxmint)
         echo -e "\n${BOLD}Checking UFW (Debian/Ubuntu Standard):${END_COLOR}"
         if command -v ufw >/dev/null; then
-            ufw_status=$(sudo ufw status | head -1 2>/dev/null)
-            if [[ "$ufw_status" == *"active"* ]]; then
-                echo -e "  ${GREEN}$ufw_status${END_COLOR}"
+            #avoid password prompts and distinguish failed checks from inactive status
+            if (( EUID == 0 )); then
+                ufw_status=$(LC_ALL=C ufw status)
             else
+                ufw_status=$(sudo -n env LC_ALL=C ufw status)
+            fi
+            ufw_result=$?
+            if (( ufw_result != 0 )); then
+                highlight "$YELLOW" "Cannot read UFW status. Check permissions and the error above."
+            #match the full status line so inactive cannot match active
+            elif [[ "$ufw_status" == "Status: active" || "$ufw_status" == "Status: active"$'\n'* ]]; then
+                echo -e "  ${GREEN}UFW is Active${END_COLOR}"
+            elif [[ "$ufw_status" == "Status: inactive" || "$ufw_status" == "Status: inactive"$'\n'* ]]; then
                 highlight "$RED" "UFW is INACTIVE"
+            else
+                highlight "$YELLOW" "Unrecognized UFW status: $ufw_status"
             fi
         else
             echo "  UFW not installed."
         fi
         ;;
-        
+
     fedora|centos|rhel)
         echo -e "\n${BOLD}Checking Firewalld (Fedora/RHEL Standard):${END_COLOR}"
         if command -v firewall-cmd >/dev/null; then
@@ -222,7 +243,7 @@ case "$DISTRO" in
             echo "  Firewalld not installed."
         fi
         ;;
-        
+
     *)
         echo -e "  ${YELLOW}Distro '$DISTRO' not specific. Checking for standard tools...${END_COLOR}"
         if command -v ufw >/dev/null; then echo "  Found UFW"; fi
@@ -230,12 +251,22 @@ case "$DISTRO" in
         ;;
 esac
 
-echo -e "\n${BOLD}Iptables Rules Count:${END_COLOR}"
-if command -v iptables >/dev/null && sudo -n iptables -L 2>/dev/null >/dev/null; then
-    rule_count=$(sudo iptables -L -n | grep -c "^[A-Z]")
-    echo -e "  Total Rules: ${CYAN}$rule_count${END_COLOR}"
+echo -e "\n${BOLD}Iptables Rules Count (IPv4, all saved tables):${END_COLOR}"
+#count saved rule entries instead of chain and column headings
+if command -v iptables-save >/dev/null; then
+    if (( EUID == 0 )); then
+        iptables_rules=$(iptables-save)
+    else
+        iptables_rules=$(sudo -n iptables-save)
+    fi
+    if (( $? == 0 )); then
+        rule_count=$(printf '%s\n' "$iptables_rules" | awk '/^-A / {count++} END {print count+0}')
+        echo -e "  Total Rules: ${CYAN}$rule_count${END_COLOR}"
+    else
+        highlight "$YELLOW" "Cannot read iptables rules. Check permissions and the error above."
+    fi
 else
-    echo -e "  ${YELLOW}Cannot read iptables (permission denied or not found)${END_COLOR}"
+    highlight "$YELLOW" "iptables-save not found."
 fi
 
 ####################### History Analysis #######################
@@ -320,18 +351,82 @@ case "$DISTRO" in
             dpkg -l | grep -E "nmap|netcat|wireshark|tcpdump|john|hydra|metasploit" | awk '{print "    " $2 " - " $3}'
         fi
         ;;
-        
+
     fedora|centos|rhel)
         echo -e "  Using ${BLUE}RPM/DNF${END_COLOR} to check for hacking tools..."
         if command -v rpm >/dev/null; then
             rpm -qa | grep -E "nmap|netcat|wireshark|tcpdump|john|hydra" | sed 's/^/    /'
         fi
         ;;
-        
+
     *)
         echo "  Unknown package manager for distro: $DISTRO"
         ;;
 esac
+
+# Docker audit
+divider "$CYAN" "Docker Audit"
+#if we cannot find docker
+if ! command -v docker >/dev/null 2>&1; then
+    echo "  Docker is not installed."
+# if docker is installed but cannot access docker containers
+elif ! container_ids=$(docker ps -aq); then
+    highlight "$YELLOW" "Cannot list Docker containers. Check daemon access and permissions."
+#docker is installed and we have permission but no containers
+elif [[ -z "$container_ids" ]]; then
+    echo -e "  ${GREEN}No Docker containers found.${END_COLOR}"
+else
+    # containers exist
+    echo -e "\n${BOLD}Containers (including stopped):${END_COLOR}"
+    #get container details
+    while IFS= read -r container_id; do
+        #get the name and mounts together so each container only needs one inspection
+        if ! inspection=$(docker inspect --format \
+            '{{.Name}} ({{.State.Status}}){{range .Mounts}}{{printf "\n%s|%s|%s" .Type .Source .Destination}}{{end}}' \
+            "$container_id"); then
+            highlight "$YELLOW" "Could not inspect container $container_id"
+            continue
+        fi
+        details=${inspection%%$'\n'*}
+        risky_mount=false
+        #check both socket names and sensitive host directories, including their subdirectories
+        while IFS='|' read -r mount_type source destination; do
+            [[ -z "$mount_type" ]] && continue
+            reason=""
+            case "$source" in
+                /) reason="HOST_ROOT" ;;
+                */docker.sock) reason="DOCKER_SOCKET" ;;
+            esac
+            #a socket can be renamed on the host but still mounted at the usual container path
+            if [[ "$destination" == */docker.sock ]]; then
+                reason="${reason:+$reason, }DOCKER_SOCKET_DESTINATION"
+            fi
+            if [[ "$mount_type" == "bind" ]]; then
+                case "$source" in
+                    /etc|/etc/*|/home|/home/*|/root|/root/*|/run|/run/*|/var/run|/var/run/*|/var/lib/docker|/var/lib/docker/*|/proc|/proc/*|/sys|/sys/*|/dev|/dev/*)
+                        reason="${reason:+$reason, }SENSITIVE_HOST_PATH"
+                        ;;
+                esac
+            fi
+            if [[ -n "$reason" ]]; then
+                risky_mount=true
+                details+=" [$reason: $source -> $destination]"
+            fi
+        done < <(printf '%s\n' "$inspection" | sed '1d')
+        #highlight if a risky mount, including read-only mounts
+        if $risky_mount; then
+            highlight "$RED" "$details"
+        #print regular container details
+        else
+            printf '  %s\n' "$details"
+        fi
+    done <<< "$container_ids"
+    #mount checks cannot prove whether a container has network access to a Docker API or proxy
+    echo "  Mount checks are heuristic; review custom socket paths, Docker API/proxy access, and other host binds separately."
+fi
+
+
+
 
 ####################### Network Information #######################
 divider "$CYAN" "Network Configuration"
