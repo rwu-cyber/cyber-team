@@ -1,49 +1,44 @@
 # First 48
 
-### TODO:
-<details>
-  <summary>Kubernetes</summary>
-  <p>I think we should automate a kubebench run to check if we are using best security practices</p>
-  <ul>
-    <li>YAML:</li>
-    https://gitlab.com/nuccdc/tools/-/blob/master/scripts/unix/kubebench/job.yaml?ref_type=heads
-    <li> I have started working on a script to run the kubebench</li>
-  </ul>
-</details>
+# TODO:
 
 - [ ] Incorporate some sort of file integrity checker: debsums, tripwire
 - [ ] Rootkit checker: chkroot, rkhunter
 - [ ] Create a backup directory for important stuff
 - [ ] File monitoring with wazuh or other system? Send alerts to soc if important files are changed.
+- [ ] Telnet / netcat removal (?)
+- [ ] Automate kubebench run to check for best security practices
 
-Should we script out some sort of telnet / netcat removal?
+# 1. Clone the repository
+
+<!-- what if the host doesnt have git for some reason? -->
 ```bash
-rm $(which telnet) 2>/dev/null
-rm $(which nc) 2>/dev/null
+git clone https://github.com/rwu-cyber/cyber-team.git && cd cyber-team && git switch dev-neccdc-2027
+# Make all scripts executable, or run scripts with interpreter (`bash ./script.sh`)
+chmod +x linux/scripts/*
 ```
 
-## 1. Clone the repository
-```bash
-git clone https://github.com/rwu-cyber/cyber-team.git
-cd cyber-team
-git switch dev-neccdc-2026
-```
-## 2. Enumeration
-#### Run Enumeration Script
-May need to run chmod +x _script.sh_ to make executable
+# 2. Enumeration
+<!-- what if we used ansible playbooks to automate these tasks? -->
+
+## Run Enumeration Script
+
 ```bash
 cd linux/scripts
 sudo ./enumeration.sh
 ```
-#### Create Backup Admins
+
+## Create Backup Admins
+
 ```bash
 sudo ./createLocalAdmin.sh
 ```
-#### Run AV Scan
+
+## Run AV Scan
+
 ```bash
 cd ../tools
 sudo ./scan.sh
 # OR RUN IN BACKGROUND
 sudo nohup ./scan.sh & ## output goes to nohup.out and logs/
 ```
-
