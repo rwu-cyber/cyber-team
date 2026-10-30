@@ -1,39 +1,29 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
+die(){
+  printf '[%s] %s\n' "${FUNCNAME[1]}" "$*" >&2
+  exit 1
+}
 
-# check if script was run as sudo
-if [[ $EUID -ne 0 ]]; then
-   printf "This script must be run as root.\n Please run using sudo."
-   exit 1
-fi
+# check if script was run as root
+(( $UID == 0 )) || die "This script must be run as root."
 
-printf "Creating local admin account...\n\n"
+createUser(){
+  (( $# == 0 )) && read -rp "Enter account username: " username || username="$1"
+  if [ -z "$username" ]; then
+    die "No input detected."
+  fi
 
-# prompt username
-printf "New account name: "
-read user
+  adduser --gecos "" "${username}" || die "Failed to create user."
+  printf '%s ALL=(ALL:ALL) ALL\n' "$username" > "/etc/sudoers.d/$username"
+}
 
-if [ -z "$user" ]; then
-        echo "No input detected."
-        exit 1
-fi
+validate(){
+  visudo -cf "/etc/sudoers.d/$username" || die "visudo check failed."
+  sudo -l -U $username
+}
 
-# add the user
-adminGroup="sudo" # default
-
-if grep -q '^wheel:' /etc/group; then
-        adminGroup="wheel" # override sudo w/ wheel
-fi
-
-printf "Using group: %s\n" "$adminGroup"
-useradd -m -s /bin/bash "$user"
-passwd "$user"
-usermod -aG "$adminGroup" "$user"
-
-# check if the command worked
-if [ $? -ne 0 ]; then
-        printf "Command Failed!"
-else
-        printf "User '$user' created successfully!\n"
-fi
-
-exit 0
+main(){
+  createUser "$@"
+  validate
+}; main "$@"
