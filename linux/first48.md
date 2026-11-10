@@ -13,7 +13,7 @@
 
 <!-- what if the host doesnt have git for some reason? -->
 ```bash
-git clone https://github.com/rwu-cyber/cyber-team.git && cd cyber-team && git switch dev-neccdc-2027
+curl -L --remote-name https://github.com/rwu-cyber/cyber-team/archive/refs/heads/dev-neccdc-2027.zip && unzip dev-neccdc-2027.zip
 # Make all scripts executable, or run scripts with interpreter (`bash ./script.sh`)
 chmod +x linux/scripts/*
 ```
