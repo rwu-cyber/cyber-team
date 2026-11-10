@@ -21,17 +21,21 @@ chmod +x linux/scripts/*
 # 2. Enumeration
 <!-- what if we used ansible playbooks to automate these tasks? -->
 
-## Run Enumeration Script
-
-```bash
-cd linux/scripts
-sudo ./enumeration.sh
-```
-
 ## Create Backup Admins
 
 ```bash
 sudo ./createLocalAdmin.sh
+```
+
+## Run Enumeration Script
+## Create Backup Admins
+
+```bash
+sudo ./createLocalAdmin.sh
+```
+```bash
+cd linux/scripts
+sudo ./enumeration.sh
 ```
 
 ## Run AV Scan
