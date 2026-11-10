@@ -8,14 +8,28 @@ die(){
 # check if script was run as root
 (( $UID == 0 )) || die "This script must be run as root."
 
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS=$ID
+else
+    OS="unknown"
+fi
+
 createUser(){
   (( $# == 0 )) && read -rp "Enter account username: " username || username="$1"
   if [ -z "$username" ]; then
     die "No input detected."
   fi
 
-  adduser --gecos "" "${username}" || die "Failed to create user."
+# create user in accordance to distro
+case $OS in
+    "debian"|"ubuntu") adduser --gecos "" "${username}" || die "Failed to create user." ; usermod -aG sudo "${username}" ;;
+    "rocky"|"almalinux"|"rhel"|"fedora"|"sles"|"opensuse-leap") useradd "${username}" || die "Failed to create user." ; usermod -aG wheel "${username}";;
+    *) echo "Cannot add user to $OS system" ;;
+esac
+
   printf '%s ALL=(ALL:ALL) ALL\n' "$username" > "/etc/sudoers.d/$username"
+  chmod 0440 "/etc/sudoers.d/$username"
 }
 
 validate(){
