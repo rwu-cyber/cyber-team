@@ -35,3 +35,23 @@ highlight() {
     local text=$2
     echo -e "${color}${BOLD}[!]${END_COLOR} ${color}${text}${END_COLOR}"
 }
+
+# bail [STATUS] TEXT
+#
+# print TEXT and exit STATUS
+#   STATUS defaults to 1
+bail(){
+    local text
+		local status
+
+		if (($# == 2));
+		 then
+		  status="$1"
+			text="$2"
+		 else
+		  status=1
+			text="$1"
+		fi
+    printf "(%s)[%s] ${BOLD}${RED}FATAL:${END_COLOR} %b bailing!\n" "$0" "${FUNCNAME[1]}" "$text"
+    exit "$status"
+}
