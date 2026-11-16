@@ -20,15 +20,15 @@
 6. Monitoring User Accounts - Linux
    **1. View User Creation Alerts in the Wazuh Dashboard**
     Follow these steps to find the exact timestamp and details of a newly created Linux account:
-    •  Open the dashboard. Log in to your Wazuh web interface and navigate to Modules > Threat Hunting (or Security Events depending on your Wazuh version).
-    • Select the Events tab. Click on Events at the top of the module to view raw, searchable alert logs.
-    • Filter by Rule ID. In the search bar at the top, enter rule.id: 5902 and press Enter. You can also filter by MITRE ATT&CK technique using rule.mitre.id:         T1136.
-    • Adjust the time range. Use the time picker in the top-right corner to select the timeframe you want to inspect.
-   • Inspect the alert details. Expand any matching event to view the @timestamp (exact creation time), agent.name (the Linux host), and full_log (which shows the     newly created username, UID, GID, and home directory).
+    -  Open the dashboard. Log in to your Wazuh web interface and navigate to Modules > Threat Hunting (or Security Events depending on your Wazuh version).
+    - Select the Events tab. Click on Events at the top of the module to view raw, searchable alert logs.
+    - Filter by Rule ID. In the search bar at the top, enter rule.id: 5902 and press Enter. You can also filter by MITRE ATT&CK technique using rule.mitre.id:         T1136.
+    - Adjust the time range. Use the time picker in the top-right corner to select the timeframe you want to inspect.
+   - Inspect the alert details. Expand any matching event to view the @timestamp (exact creation time), agent.name (the Linux host), and full_log (which shows the     newly created username, UID, GID, and home directory).
     **2. Detect Manual Account Creation**
     Attackers sometimes bypass standard commands by manually editing system files. To catch this behavior, use Wazuh's File Integrity Monitoring (FIM) module:
-    • Monitor account files. Confirm that /etc/passwd, /etc/shadow, /etc/group, and /etc/gshadow are included under <directories> in the <syscheck> section of        /var/ossec/etc/ossec.conf.
-   • Check FIM events. Navigate to Modules > File Integrity Monitoring in the dashboard and filter by syscheck.path: /etc/passwd to see the exact timestamp             whenever the file is modified.
+     - Monitor account files. Confirm that /etc/passwd, /etc/shadow, /etc/group, and /etc/gshadow are included under <directories> in the <syscheck> section of        /var/ossec/etc/ossec.conf.
+   - Check FIM events. Navigate to Modules > File Integrity Monitoring in the dashboard and filter by syscheck.path: /etc/passwd to see the exact timestamp             whenever the file is modified.
 
 7. Monitoring User Accounts - Windows
    1. **Ari Add**
