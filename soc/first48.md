@@ -19,6 +19,7 @@
    1. **COME BACK TO THIS**
 
 6. Monitoring User Accounts - Linux
+   
    **1. View User Creation Alerts in the Wazuh Dashboard**
    **Follow these steps to find the exact timestamp and details of a newly created Linux account:**
    -  Open the dashboard. Log in to your Wazuh web interface and navigate to Modules > Threat Hunting (or Security Events depending on your Wazuh version).**
