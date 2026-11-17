@@ -37,4 +37,4 @@ main(){
 		fi
 		printf "$PUBKEY" >> \$HOME/.ssh/authorized_keys
 	EOF
-}
+}; main "$@"
