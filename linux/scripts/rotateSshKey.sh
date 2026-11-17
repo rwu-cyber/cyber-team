@@ -20,7 +20,7 @@ PUBKEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKwaopqu2HpokAg2trEQiYLwGs3PRC4oZEMd
 
 main(){
 	local target
-	(( $# == 0 )) && bail "no host provided."
+	(( $# == 0 )) || bail "no host provided."
 	target="$1"
 	ssh "$target" bash <<- EOF
 		if [[ -e "\$HOME/.ssh/authorized_keys" ]]; then 
