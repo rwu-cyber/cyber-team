@@ -1,4 +1,50 @@
 #!/usr/bin/env python3
+import sys
+import subprocess
+import importlib.util
+
+REQUIRED_PACKAGES = [
+    "matplotlib",
+    "argparse",
+    "re",
+    "collections",
+    "pathlib",
+    "matplotlib.pyplot",
+    "matplotlib.patches",
+    "csv"
+]
+
+for package in REQUIRED_PACKAGES:
+    base_package = package.split(".")[0]
+
+    if base_package in sys.builtin_module_names:
+        print(f"'{package}' is built-in by default.")
+        continue
+
+    try:
+        spec = importlib.util.find_spec(base_package)
+        
+        if spec is not None:
+            if spec.origin and "site-packages" not in spec.origin:
+                print(f"'{package}' is installed by default (Standard Library).")
+            else:
+                print(f"'{package}' is already installed.")
+        else:
+            raise ImportError
+
+    except ImportError:
+        print(f"'{base_package}' not found. Installing via pip...")
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", base_package],
+                check=True
+            )
+            print(f"Successfully installed '{base_package}'.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to install '{base_package}'. Error: {e}")
+            print("This may be a required package for the script, if there are issues, please use pip install to fix")
+
+
 import argparse
 import csv
 import ipaddress
