@@ -1,29 +1,39 @@
 1. Run an Extensive NMap Scan
+   
     1. **Make sure you are on the VPN**  
     2. **Take note of the OS of the different machines**
     3. **nmap -sC -sV [target]**
    
 2. Locate Wazuh or an equivalent
+   
    1. **sudo cat /etc/os-release**
    
 3. Make sure the web server/dashboard is up
+   
    1. **Check out Things you may Encounter.md if you run into issues**
    
 4. Make a new user account
+   
    1. **Reset the password**
    2. **Can't be done through the GUI; must be done through the terminal**
    3. **sudo bash wazuh-passwords-tool.sh -u admin -p <YOUR PASSWORD HERE>**
    4. *https://documentation.wazuh.com/current/user-manual/user-administration/password-management.html*
    
 5. Add Windows and Linux Machines as nodes
- **1.Linux**
+    
+     1. **Linux**
+ 
    2. curl -o wazuh-agent-4.14.10-1.x86_64.rpm https://packages.wazuh.com/4.x/yum/wazuh-agent-4.14.10-1.x86_64.rpm && sudo WAZUH_MANAGER='172.16.128.114' rpm -ihv wazuh-agent-4.14.10-1.x86_64.rpm
+      
    3. sudo systemctl daemon-reload
       sudo systemctl enable wazuh-agent
       sudo systemctl start wazuh-agent
- **4.Windows**
-   5. Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.10-1.msi -OutFile $env:tmp\wazuh-agent; msiexec.exe /i $env:tmp\wazuh-agent /q WAZUH_MANAGER='172.16.128.114' WAZUH_AGENT_NAME='DC1'
-   6. NET START Wazuh
+    
+     1. **Windows**
+ 
+   2. Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.10-1.msi -OutFile $env:tmp\wazuh-agent; msiexec.exe /i $env:tmp\wazuh-agent /q WAZUH_MANAGER='172.16.128.114' WAZUH_AGENT_NAME='DC1'
+      
+   3. NET START Wazuh
       
 6. Monitoring User Accounts - Linux
    
@@ -34,12 +44,13 @@
     - Filter by Rule ID. In the search bar at the top, enter rule.id: 5902 and press Enter. You can also filter by MITRE ATT&CK technique using rule.mitre.id:         T1136.
     - Adjust the time range. Use the time picker in the top-right corner to select the timeframe you want to inspect.
    - Inspect the alert details. Expand any matching event to view the @timestamp (exact creation time), agent.name (the Linux host), and full_log (which shows the     newly created username, UID, GID, and home directory).
+     
     **2. Detect Manual Account Creation**
     Attackers sometimes bypass standard commands by manually editing system files. To catch this behavior, use Wazuh's File Integrity Monitoring (FIM) module:
      - Monitor account files. Confirm that /etc/passwd, /etc/shadow, /etc/group, and /etc/gshadow are included under <directories> in the <syscheck> section of        /var/ossec/etc/ossec.conf.
    - Check FIM events. Navigate to Modules > File Integrity Monitoring in the dashboard and filter by syscheck.path: /etc/passwd to see the exact timestamp             whenever the file is modified.
 
-8. Monitoring User Accounts - Windows
+7. Monitoring User Accounts - Windows
    
    **1. View Wazuh's centralized configuration or SCA (Security Configuration Assessment) module to ensure windows endpoints have "Audit User           Account Management" and "Audit Logon policies" active.**
    **2. Filter pre-built Windows security rules in Wazuh by ID.**
@@ -53,5 +64,3 @@
        - Valid Accounts (T1078)
     **4. Add composite rules on the Wazuh Manager using <if_sid> and <if_matched_sid> to escalate severity when a newly created user (60109) is          immediately added to an admin group (60160)**
     **5. (Optional) Automate response using custom scripting.**
-
-10. 
