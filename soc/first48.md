@@ -16,8 +16,15 @@
    4. *https://documentation.wazuh.com/current/user-manual/user-administration/password-management.html*
    
 5. Add Windows and Linux Machines as nodes
-   1. **COME BACK TO THIS**
-
+ **1.Linux**
+   2. curl -o wazuh-agent-4.14.10-1.x86_64.rpm https://packages.wazuh.com/4.x/yum/wazuh-agent-4.14.10-1.x86_64.rpm && sudo WAZUH_MANAGER='172.16.128.114' rpm -ihv wazuh-agent-4.14.10-1.x86_64.rpm
+   3. sudo systemctl daemon-reload
+      sudo systemctl enable wazuh-agent
+      sudo systemctl start wazuh-agent
+ **4.Windows**
+   5. Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.10-1.msi -OutFile $env:tmp\wazuh-agent; msiexec.exe /i $env:tmp\wazuh-agent /q WAZUH_MANAGER='172.16.128.114' WAZUH_AGENT_NAME='DC1'
+   6. NET START Wazuh
+      
 6. Monitoring User Accounts - Linux
    
    **1. View User Creation Alerts in the Wazuh Dashboard**
