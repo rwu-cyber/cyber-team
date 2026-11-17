@@ -13,29 +13,28 @@
 # i probably should've vibecoded this
 ##
 set -euo pipefail
-: "${KEY_TYPE:=ed25519}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/common.sh"
+
+PUBKEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKwaopqu2HpokAg2trEQiYLwGs3PRC4oZEMdhQYNdXyh"
+
 main(){
-	IFS='@' read -r remote_user host <<< $1
-	if ping -c 1 $host; then
-		## assumes you use some sort of agent, like bitwarden
-		ssh-add -D
-		ssh-keygen -N '' -f $HOME/.ssh/$host-$KEY_TYPE
-		if ssh-copy-id $remote_user@$host; then
-			ssh $remote_user@$host bash <<- EOF
-				echo "connected to $host (\$(hostname))"...
-				lineind=0
-				cp \$HOME/.ssh/authorized_keys \$HOME/.ssh/authorized_keys.bak
-				echo "$(cat $HOME/.ssh/$host-$KEY_TYPE.pub)" | tee \$HOME/.ssh/authorized_keys
-				mapfile -t authorized_keys < \$HOME/.ssh/authorized_keys
-				for line in "\${authorized_keys[@]}"; do
-					((lineind++))
-					if [[ \$line == "$(cat $HOME/.ssh/$host-$KEY_TYPE.pub)" ]]; then					
-						echo "located roated key on line \$lineind in authorized_keys."
-					else
-						echo "WARN: found unknown key: '\$line'"
-					fi
-				done
-			EOF
+	local target
+	(( $# == 0 )) && bail "no host provided."
+	target="$1"
+	ssh "$target" bash <<- EOF
+		if [[ -e "\$HOME/.ssh/authorized_keys" ]]; then 
+			cat \$HOME/.ssh/authorized_keys
+			read -rp "Nuke existing authorized keys? (y/N)" nukekeys
+			case "\$nukekeys" in
+				y|Y)
+					sudo rm -rf \$HOME/.ssh/authorized_keys
+				;;
+				*)
+					echo "ignoring authorized_keys..."
+				;;
+			esac
 		fi
-	fi
-}; main "$@"
+		printf "$PUBKEY" >> \$HOME/.ssh/authorized_keys
+	EOF
+}
