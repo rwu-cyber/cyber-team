@@ -2,7 +2,7 @@
    
     1. **Make sure you are on the VPN**  
     2. **Take note of the OS of the different machines**
-    3. **nmap -sC -sV [target]**
+    3. **nmap -sC -O -sV [target]**
    
 2. Locate Wazuh or an equivalent
    
