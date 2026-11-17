@@ -20,7 +20,7 @@
 
 6. Monitoring User Accounts - Linux
    **1. View User Creation Alerts in the Wazuh Dashboard**
-   Follow these steps to find the exact timestamp and details of a newly created Linux account:
+   **Follow these steps to find the exact timestamp and details of a newly created Linux account:**
    -  Open the dashboard. Log in to your Wazuh web interface and navigate to Modules > Threat Hunting (or Security Events depending on your Wazuh version).**
     - Select the Events tab. Click on Events at the top of the module to view raw, searchable alert logs.
     - Filter by Rule ID. In the search bar at the top, enter rule.id: 5902 and press Enter. You can also filter by MITRE ATT&CK technique using rule.mitre.id:         T1136.
