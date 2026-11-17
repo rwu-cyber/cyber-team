@@ -13,7 +13,7 @@
    1. **Reset the password**
    2. **Can't be done through the GUI; must be done through the terminal**
    3. **sudo bash wazuh-passwords-tool.sh -u admin -p <YOUR PASSWORD HERE>**
-          1. **https://documentation.wazuh.com/current/user-manual/user-administration/password-management.html**
+   4. *https://documentation.wazuh.com/current/user-manual/user-administration/password-management.html*
    
 5. Add Windows and Linux Machines as nodes
    1. **COME BACK TO THIS**
